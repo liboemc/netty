@@ -15,26 +15,27 @@
  */
 package io.netty.buffer;
 
-import io.netty.util.ResourceLeak;
+import io.netty.util.ResourceLeakTracker;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-// Extending AtomicBoolean for intrinsics and saving memory.
-final class NoopResourceLeak extends AtomicBoolean implements ResourceLeak {
+final class NoopResourceLeakTracker<T> extends AtomicBoolean implements ResourceLeakTracker<T> {
 
     private static final long serialVersionUID = 7874092436796083851L;
 
     @Override
     public void record() {
+        // NOOP
     }
 
     @Override
     public void record(Object hint) {
+        // NOOP
     }
 
     @Override
-    public boolean close() {
+    public boolean close(T trackedObject) {
         return compareAndSet(false, true);
     }
 }

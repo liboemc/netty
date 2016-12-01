@@ -47,7 +47,7 @@ public class ResourceLeakDetectorTest {
                             // Allocate 100 LeakAwareResource per run and close them after it.
                             for (int a = 0; a < 100; a++) {
                                 DefaultResource resource = new DefaultResource();
-                                ResourceLeak leak = DefaultResource.detector.open(resource);
+                                ResourceLeakTracker<Resource> leak = DefaultResource.detector.track(resource);
                                 LeakAwareResource leakAwareResource = new LeakAwareResource(resource, leak);
                                 resources.add(leakAwareResource);
                             }
@@ -98,9 +98,9 @@ public class ResourceLeakDetectorTest {
     // Mimic the way how we implement our classes that should help with leak detection
     private static final  class LeakAwareResource implements Resource {
         private final Resource resource;
-        private final ResourceLeak leak;
+        private final ResourceLeakTracker<Resource> leak;
 
-        LeakAwareResource(Resource resource, ResourceLeak leak) {
+        LeakAwareResource(Resource resource, ResourceLeakTracker<Resource> leak) {
             this.resource = resource;
             this.leak = leak;
         }
@@ -111,8 +111,8 @@ public class ResourceLeakDetectorTest {
             // in https://github.com/netty/netty/issues/6034 .
             //
             // The following implementation would produce a leak:
-            //     return resource.close() && leak.close();
-            return resource.close() && ResourceLeakDetector.close(leak, resource);
+            //     return leak.close();
+            return leak.close(resource);
         }
     }
 

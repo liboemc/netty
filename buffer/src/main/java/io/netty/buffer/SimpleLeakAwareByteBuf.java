@@ -16,16 +16,15 @@
 
 package io.netty.buffer;
 
-import io.netty.util.ResourceLeak;
-import io.netty.util.ResourceLeakDetector;
+import io.netty.util.ResourceLeakTracker;
 
 import java.nio.ByteOrder;
 
 final class SimpleLeakAwareByteBuf extends WrappedByteBuf {
 
-    private final ResourceLeak leak;
+    private final ResourceLeakTracker<ByteBuf> leak;
 
-    SimpleLeakAwareByteBuf(ByteBuf buf, ResourceLeak leak) {
+    SimpleLeakAwareByteBuf(ByteBuf buf, ResourceLeakTracker<ByteBuf> leak) {
         super(buf);
         this.leak = leak;
     }
@@ -46,7 +45,7 @@ final class SimpleLeakAwareByteBuf extends WrappedByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release()) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }
@@ -59,7 +58,7 @@ final class SimpleLeakAwareByteBuf extends WrappedByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release(decrement)) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }

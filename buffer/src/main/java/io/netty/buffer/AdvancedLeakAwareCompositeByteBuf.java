@@ -17,8 +17,7 @@ package io.netty.buffer;
 
 
 import io.netty.util.ByteProcessor;
-import io.netty.util.ResourceLeak;
-import io.netty.util.ResourceLeakDetector;
+import io.netty.util.ResourceLeakTracker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,9 +35,9 @@ import static io.netty.buffer.AdvancedLeakAwareByteBuf.recordLeakNonRefCountingO
 
 final class AdvancedLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
 
-    private final ResourceLeak leak;
+    private final ResourceLeakTracker<ByteBuf> leak;
 
-    AdvancedLeakAwareCompositeByteBuf(CompositeByteBuf wrapped, ResourceLeak leak) {
+    AdvancedLeakAwareCompositeByteBuf(CompositeByteBuf wrapped, ResourceLeakTracker<ByteBuf> leak) {
         super(wrapped);
         this.leak = leak;
     }
@@ -1043,7 +1042,7 @@ final class AdvancedLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release()) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }
@@ -1057,7 +1056,7 @@ final class AdvancedLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release(decrement)) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }

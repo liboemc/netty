@@ -17,8 +17,7 @@
 package io.netty.buffer;
 
 import io.netty.util.ByteProcessor;
-import io.netty.util.ResourceLeak;
-import io.netty.util.ResourceLeakDetector;
+import io.netty.util.ResourceLeakTracker;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -48,14 +47,14 @@ final class AdvancedLeakAwareByteBuf extends WrappedByteBuf {
         }
     }
 
-    private final ResourceLeak leak;
+    private final ResourceLeakTracker<ByteBuf> leak;
 
-    AdvancedLeakAwareByteBuf(ByteBuf buf, ResourceLeak leak) {
+    AdvancedLeakAwareByteBuf(ByteBuf buf, ResourceLeakTracker<ByteBuf> leak) {
         super(buf);
         this.leak = leak;
     }
 
-    static void recordLeakNonRefCountingOperation(ResourceLeak leak) {
+    static void recordLeakNonRefCountingOperation(ResourceLeakTracker<ByteBuf> leak) {
         if (!ACQUIRE_AND_RELEASE_ONLY) {
             leak.record();
         }
@@ -953,7 +952,7 @@ final class AdvancedLeakAwareByteBuf extends WrappedByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release()) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }
@@ -967,7 +966,7 @@ final class AdvancedLeakAwareByteBuf extends WrappedByteBuf {
         // by ByteBuf.
         ByteBuf unwrapped = unwrap();
         if (super.release(decrement)) {
-            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            boolean closed = leak.close(unwrapped);
             assert closed;
             return true;
         }

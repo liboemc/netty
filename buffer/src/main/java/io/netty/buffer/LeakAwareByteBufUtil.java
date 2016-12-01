@@ -15,17 +15,17 @@
  */
 package io.netty.buffer;
 
-import io.netty.util.ResourceLeak;
+import io.netty.util.ResourceLeakTracker;
 
 final class LeakAwareByteBufUtil {
 
     private LeakAwareByteBufUtil() { }
 
-    static ByteBuf unwrappedDerived(ByteBuf leakAware, ResourceLeak parentLeak, ByteBuf derived) {
+    static ByteBuf unwrappedDerived(ByteBuf leakAware, ResourceLeakTracker<ByteBuf> parentLeak, ByteBuf derived) {
         ByteBuf unwrappedDerived = unwrapSwapped(derived);
 
         if (unwrappedDerived instanceof AbstractPooledDerivedByteBuf) {
-            ResourceLeak leak = AbstractByteBuf.leakDetector.open(derived);
+            ResourceLeakTracker<ByteBuf> leak = AbstractByteBuf.leakDetector.track(derived);
             if (leak == null) {
                 // No leak detection, just return the derived buffer.
                 return derived;
@@ -43,8 +43,7 @@ final class LeakAwareByteBufUtil {
     private static ByteBuf unwrapSwapped(ByteBuf buf) {
         if (buf instanceof SwappedByteBuf) {
             do {
-                // TODO: Just use unwrap() once https://github.com/netty/netty/pull/6081 is fixed.
-                buf = ((SwappedByteBuf) buf).buf;
+                buf = buf.unwrap();
             } while (buf instanceof SwappedByteBuf);
 
             return buf;

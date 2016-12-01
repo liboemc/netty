@@ -202,8 +202,24 @@ public class ResourceLeakDetector<T> {
      * related resource is deallocated.
      *
      * @return the {@link ResourceLeak} or {@code null}
+     * @deprecated use {@link #track(Object)}
      */
+    @Deprecated
     public final ResourceLeak open(T obj) {
+        return track0(obj);
+    }
+
+    /**
+     * Creates a new {@link ResourceLeakTracker} which is expected to be closed via
+     * {@link ResourceLeakTracker#close(Object)} when the related resource is deallocated.
+     *
+     * @return the {@link ResourceLeakTracker} or {@code null}
+     */
+    public final ResourceLeakTracker<T> track(T obj) {
+        return track0(obj);
+    }
+
+    private DefaultResourceLeak track0(T obj) {
         Level level = ResourceLeakDetector.level;
         if (level == Level.DISABLED) {
             return null;
@@ -300,7 +316,9 @@ public class ResourceLeakDetector<T> {
                 "so that only a few instances are created.");
     }
 
-    private final class DefaultResourceLeak extends PhantomReference<Object> implements ResourceLeak {
+    @SuppressWarnings("deprecation")
+    private final class DefaultResourceLeak extends PhantomReference<Object> implements ResourceLeakTracker<T>,
+            ResourceLeak {
         private final String creationRecord;
         private final Deque<String> lastRecords = new ArrayDeque<String>();
         private int removedRecords;
@@ -316,7 +334,6 @@ public class ResourceLeakDetector<T> {
             } else {
                 creationRecord = null;
             }
-
             allLeaks.put(this, LeakEntry.INSTANCE);
         }
 
@@ -351,6 +368,21 @@ public class ResourceLeakDetector<T> {
         public boolean close() {
             // Use the ConcurrentMap remove method, which avoids allocating an iterator.
             return allLeaks.remove(this, LeakEntry.INSTANCE);
+        }
+
+        @Override
+        public boolean close(T trackedObject) {
+            // We need to actually do the null check of the trackedObject after we call leak.close() because otherwise
+            // we may get false-positives reported by the ResourceLeakDetector. This can happen as the JIT / GC may
+            // be able to figure out that we do not need the trackedObject anymore and so already enqueue it for
+            // collection before we actually get a chance to close the enclosing ResourceLeak.
+            //
+            // A more proper fix in the future is to change the ResourceLeak.close() method to take the tracked object
+            // as and so ensure it will not be collected before we had a chance to close the ResourceLeak.
+            //
+            // See also https://github.com/netty/netty/issues/6034
+            //
+            return close() && trackedObject != null;
         }
 
         @Override
@@ -466,29 +498,5 @@ public class ResourceLeakDetector<T> {
         public boolean equals(Object obj) {
             return obj == this;
         }
-    }
-
-    /**
-     * Calls {@link ResourceLeak#close()} and ensure the tracked object is not collected before and returns its return
-     * value. This is the proper way to close a {@link ResourceLeak} from within user code.
-     */
-    @SuppressWarnings("deprecation")
-    public static boolean close(ResourceLeak leak, Object trackedObject) {
-        // This should never be called with a null object, so just put in an assert to make it cheap to check.
-        assert trackedObject != null;
-
-        // This is kind of an ugly hack but the only way how to fix this without breaking the API for now.
-        //
-        // We need to actually do the null check of the trackedObject after we call leak.close() because otherwise
-        // we may get false-positives reported by the ResourceLeakDetector. This can happen as the JIT / GC may be able
-        // to figure out that we do not need the trackedObject anymore and so already enqueue it for collection before
-        // we actually get a chance to close the enclosing ResourceLeak.
-        //
-        // A more proper fix in the future is to change the ResourceLeak.close() method to take the tracked object as
-        // argument and so ensure it will not be collected before we had a chance to close the ResourceLeak.
-        //
-        // See also https://github.com/netty/netty/issues/6034
-        //
-        return leak.close() && trackedObject != null;
     }
 }

@@ -36,7 +36,7 @@ import java.nio.charset.Charset;
 @Deprecated
 public class SwappedByteBuf extends ByteBuf {
 
-    final ByteBuf buf;
+    private final ByteBuf buf;
     private final ByteOrder order;
 
     public SwappedByteBuf(ByteBuf buf) {
