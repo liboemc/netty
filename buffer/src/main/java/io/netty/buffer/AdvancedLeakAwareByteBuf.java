@@ -52,7 +52,6 @@ final class AdvancedLeakAwareByteBuf extends WrappedByteBuf {
 
     AdvancedLeakAwareByteBuf(ByteBuf buf, ResourceLeak leak) {
         super(buf);
-        assert !(buf instanceof AbstractPooledDerivedByteBuf);
         this.leak = leak;
     }
 
@@ -84,34 +83,29 @@ final class AdvancedLeakAwareByteBuf extends WrappedByteBuf {
         return new AdvancedLeakAwareByteBuf(super.slice(index, length), leak);
     }
 
-    // These methods that retain as well are not delegating to their super methods. This is because keeping
-    // track of the ResourceLeak is very tricky as AbstractPooledDerivedByteBuf implementations also need to keep
-    // track of their parent to release it. The problem is that instances of AbstractPooledDerivedByteBuf have no
-    // idea about our wrapping and will not release the ResourceLeak directly as "this" is captured.
-    //
-    // Wrapping the buffers creates some overhead anyway its considered the easiest and safest way to just
-    // not make use of AbstractPooleDerivedByteBuf when leak detection for the buffer is ongoing.
     @Override
     public ByteBuf retainedSlice() {
-        return slice().retain();
+        recordLeakNonRefCountingOperation(leak);
+        return LeakAwareByteBufUtil.unwrappedDerived(this, leak, super.retainedSlice());
     }
 
     @Override
     public ByteBuf retainedSlice(int index, int length) {
-        return slice(index, length).retain();
+        recordLeakNonRefCountingOperation(leak);
+        return LeakAwareByteBufUtil.unwrappedDerived(this, leak, super.retainedSlice(index, length));
     }
 
     @Override
     public ByteBuf retainedDuplicate() {
-        return duplicate().retain();
+        recordLeakNonRefCountingOperation(leak);
+        return LeakAwareByteBufUtil.unwrappedDerived(this, leak, super.retainedDuplicate());
     }
 
     @Override
     public ByteBuf readRetainedSlice(int length) {
-        return readSlice(length).retain();
+        recordLeakNonRefCountingOperation(leak);
+        return LeakAwareByteBufUtil.unwrappedDerived(this, leak, super.readRetainedSlice(length));
     }
-
-    // The above comment not apply to the following methods anymore.
 
     @Override
     public ByteBuf duplicate() {

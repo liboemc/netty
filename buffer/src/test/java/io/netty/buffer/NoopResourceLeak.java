@@ -19,18 +19,22 @@ import io.netty.util.ResourceLeak;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-final class NoopResourceLeak implements ResourceLeak {
 
-    private final AtomicBoolean closed = new AtomicBoolean();
+// Extending AtomicBoolean for intrinsics and saving memory.
+final class NoopResourceLeak extends AtomicBoolean implements ResourceLeak {
+
+    private static final long serialVersionUID = 7874092436796083851L;
 
     @Override
-    public void record() { }
+    public void record() {
+    }
 
     @Override
-    public void record(Object hint) { }
+    public void record(Object hint) {
+    }
 
     @Override
     public boolean close() {
-        return closed.compareAndSet(false, true);
+        return compareAndSet(false, true);
     }
 }

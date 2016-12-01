@@ -19,7 +19,6 @@ import org.junit.Test;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -30,7 +29,7 @@ public class ResourceLeakDetectorTest {
     public void testConcurentUsage() throws Throwable {
         final AtomicBoolean finished = new AtomicBoolean();
         final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        // With 50 threads its reproducable on every run.
+        // With 50 threads issue #6087 is reproducible on every run.
         Thread[] threads = new Thread[50];
         final CyclicBarrier barrier = new CyclicBarrier(threads.length);
         for (int i = 0; i < threads.length; i++) {
@@ -56,10 +55,10 @@ public class ResourceLeakDetectorTest {
                                 finished.set(true);
                             }
                         }
-                    } catch (BrokenBarrierException e) {
-                        error.compareAndSet(null, e);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                    } catch (Throwable e) {
+                        error.compareAndSet(null, e);
                     } finally {
                         // Just close all resource now without assert it to eliminate more reports.
                         closeResources(false);
@@ -97,7 +96,7 @@ public class ResourceLeakDetectorTest {
     }
 
     // Mimic the way how we implement our classes that should help with leak detection
-    private static class LeakAwareResource implements Resource {
+    private static final  class LeakAwareResource implements Resource {
         private final Resource resource;
         private final ResourceLeak leak;
 
@@ -117,7 +116,7 @@ public class ResourceLeakDetectorTest {
         }
     }
 
-    private static class DefaultResource implements Resource {
+    private static final class DefaultResource implements Resource {
         // Sample every allocation
         static final TestResourceLeakDetector<Resource> detector = new TestResourceLeakDetector<Resource>(
                 Resource.class, 1, Integer.MAX_VALUE);
@@ -143,7 +142,7 @@ public class ResourceLeakDetectorTest {
 
         private final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
 
-        public TestResourceLeakDetector(Class<?> resourceType, int samplingInterval, long maxActive) {
+        TestResourceLeakDetector(Class<?> resourceType, int samplingInterval, long maxActive) {
             super(resourceType, samplingInterval, maxActive);
         }
 
