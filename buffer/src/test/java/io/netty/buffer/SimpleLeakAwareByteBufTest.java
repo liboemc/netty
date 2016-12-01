@@ -27,7 +27,7 @@ public class SimpleLeakAwareByteBufTest extends BigEndianHeapByteBufTest {
     }
 
     protected ByteBuf wrap(ByteBuf buffer) {
-        return new SimpleLeakAwareByteBuf(buffer, NoopResourceLeak.INSTANCE);
+        return new SimpleLeakAwareByteBuf(buffer, new NoopResourceLeak());
     }
 
     protected Class<? extends ByteBuf> leakClass() {

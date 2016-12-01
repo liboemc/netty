@@ -17,6 +17,7 @@ package io.netty.buffer;
 
 
 import io.netty.util.ResourceLeak;
+import io.netty.util.ResourceLeakDetector;
 
 import java.nio.ByteOrder;
 
@@ -31,20 +32,28 @@ final class SimpleLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
 
     @Override
     public boolean release() {
-        boolean deallocated = super.release();
-        if (deallocated) {
-            leak.close();
+        // Call unwrap() before just in case that super.release() will change the ByteBuf instance that is returned
+        // by ByteBuf.
+        ByteBuf unwrapped = unwrap();
+        if (super.release()) {
+            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            assert closed;
+            return true;
         }
-        return deallocated;
+        return false;
     }
 
     @Override
     public boolean release(int decrement) {
-        boolean deallocated = super.release(decrement);
-        if (deallocated) {
-            leak.close();
+        // Call unwrap() before just in case that super.release() will change the ByteBuf instance that is returned
+        // by ByteBuf.
+        ByteBuf unwrapped = unwrap();
+        if (super.release(decrement)) {
+            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            assert closed;
+            return true;
         }
-        return deallocated;
+        return false;
     }
 
     @Override

@@ -381,7 +381,8 @@ public abstract class AbstractDnsMessage extends AbstractReferenceCounted implem
 
         final ResourceLeak leak = this.leak;
         if (leak != null) {
-            leak.close();
+            boolean closed = ResourceLeakDetector.close(leak, this);
+            assert closed;
         }
     }
 

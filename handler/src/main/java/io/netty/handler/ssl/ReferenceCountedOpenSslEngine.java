@@ -223,7 +223,8 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
         protected void deallocate() {
             shutdown();
             if (leak != null) {
-                leak.close();
+                boolean closed = ResourceLeakDetector.close(leak, this);
+                assert closed;
             }
         }
     };

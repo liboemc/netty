@@ -32,7 +32,13 @@ public interface ResourceLeak {
     /**
      * Close the leak so that {@link ResourceLeakDetector} does not warn about leaked resources.
      *
+     * <strong>Warning:</strong> To ensure no false reports the end-user should always use
+     * {@link ResourceLeakDetector#close(ResourceLeak, Object)} for closing the {@link ResourceLeak}.
+     *
      * @return {@code true} if called first time, {@code false} if called already
+     *
+     * @deprecated use {@link ResourceLeakDetector#close(ResourceLeak, Object)}
      */
+    @Deprecated
     boolean close();
 }

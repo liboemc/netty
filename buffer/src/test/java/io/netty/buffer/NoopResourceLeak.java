@@ -17,11 +17,11 @@ package io.netty.buffer;
 
 import io.netty.util.ResourceLeak;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 final class NoopResourceLeak implements ResourceLeak {
 
-    static final NoopResourceLeak INSTANCE = new NoopResourceLeak();
-
-    private NoopResourceLeak() { }
+    private final AtomicBoolean closed = new AtomicBoolean();
 
     @Override
     public void record() { }
@@ -31,6 +31,6 @@ final class NoopResourceLeak implements ResourceLeak {
 
     @Override
     public boolean close() {
-        return false;
+        return closed.compareAndSet(false, true);
     }
 }

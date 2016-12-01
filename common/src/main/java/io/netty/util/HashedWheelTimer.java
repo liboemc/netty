@@ -347,7 +347,8 @@ public class HashedWheelTimer implements Timer {
             WORKER_STATE_UPDATER.set(this, WORKER_STATE_SHUTDOWN);
 
             if (leak != null) {
-                leak.close();
+                boolean closed = ResourceLeakDetector.close(leak, this);
+                assert closed;
             }
 
             return Collections.emptySet();
@@ -368,7 +369,8 @@ public class HashedWheelTimer implements Timer {
         }
 
         if (leak != null) {
-            leak.close();
+            boolean closed = ResourceLeakDetector.close(leak, this);
+            assert closed;
         }
         return worker.unprocessedTimeouts();
     }

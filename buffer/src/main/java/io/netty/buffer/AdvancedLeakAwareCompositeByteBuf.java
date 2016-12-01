@@ -18,6 +18,7 @@ package io.netty.buffer;
 
 import io.netty.util.ByteProcessor;
 import io.netty.util.ResourceLeak;
+import io.netty.util.ResourceLeakDetector;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -1038,23 +1039,29 @@ final class AdvancedLeakAwareCompositeByteBuf extends WrappedCompositeByteBuf {
 
     @Override
     public boolean release() {
-        boolean deallocated = super.release();
-        if (deallocated) {
-            leak.close();
-        } else {
-            leak.record();
+        // Call unwrap() before just in case that super.release() will change the ByteBuf instance that is returned
+        // by ByteBuf.
+        ByteBuf unwrapped = unwrap();
+        if (super.release()) {
+            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            assert closed;
+            return true;
         }
-        return deallocated;
+        leak.record();
+        return false;
     }
 
     @Override
     public boolean release(int decrement) {
-        boolean deallocated = super.release(decrement);
-        if (deallocated) {
-            leak.close();
-        } else {
-            leak.record();
+        // Call unwrap() before just in case that super.release() will change the ByteBuf instance that is returned
+        // by ByteBuf.
+        ByteBuf unwrapped = unwrap();
+        if (super.release(decrement)) {
+            boolean closed = ResourceLeakDetector.close(leak, unwrapped);
+            assert closed;
+            return true;
         }
-        return deallocated;
+        leak.record();
+        return false;
     }
 }

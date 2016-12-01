@@ -123,7 +123,8 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
         protected void deallocate() {
             destroy();
             if (leak != null) {
-                leak.close();
+                boolean closed = ResourceLeakDetector.close(leak, this);
+                assert closed;
             }
         }
     };
